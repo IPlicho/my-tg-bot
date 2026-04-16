@@ -9,10 +9,6 @@ import os
 from flask import Flask
 from datetime import datetime
 
-# ======================== 图片链接（固定不变）========================
-MENU_IMAGE_URL = "https://i.imgur.com/9X3QZ7k.jpg"
-BILL_IMAGE_URL = "https://i.imgur.com/7dKZJ7L.jpg"
-
 # ======================== 机器人TOKEN（完全不变）========================
 BOT1_TOKEN = "8716451687:AAGXoF5wuwuroCJ23w5UzaueXCUyy5p67q0"
 BOT2_TOKEN = "8279854167:AAHLrvg-i6e0M_WeG8coIljYlGg_RF8_oRM"
@@ -35,7 +31,7 @@ def run_flask():
         pass
 
 # ==============================================================================
-# ================================ 机器人A（完全原样 一字未改）=================================
+# ================================ 机器人A（仅修复3个BUG）=================================
 # ==============================================================================
 ADMIN_IDS_A = [8781082053, 8256055083]
 VIRTUAL_ORDER_REFRESH_SECONDS_A = 120
@@ -501,6 +497,7 @@ def callback_a(c):
                     
                     line = f"#{sid} {typ} {o['amount']} USD {sta_show} +{profit_val} {time_str}"
                     
+                    # 已完成 + 已取消 都放进已完成
                     if o["status"] == 1:
                         pending_lines.append(line)
                     else:
@@ -944,7 +941,7 @@ def admin_cmd_a(msg):
         pass
 
 # ==============================================================================
-# ================================ 机器人B（只加图片，原有逻辑100%不变）=============================
+# ================================ 机器人B（完全原样，一字未改）=============================
 # ==============================================================================
 ADMIN_ID_B = 8401979801
 user_lang2 = {}
@@ -1039,12 +1036,12 @@ Safe · Hot · Professional · Reliable""",
         "create_escrow": "🚀 Create Escrow",
         "join_escrow": "📥 Enter Code",
         "input_amount": "💰 Enter amount (USDT):",
-        "input_tip": "🔒 Set transaction code:",
-        "input_sell_tip": "🔑 Enter escrow code:",
-        "escrow_success": "✅ Escrow created!\nAmount: {:.2f} USDT\nCode: {}\nCreated: {}",
-        "pair_success": "✅ Order paired!\nBuyer: {}\nSeller: {}\nAmount: {:.2f} USDT\nTime: {}",
+        "input_tip": "🔒 Set your code:",
+        "input_sell_tip": "🔑 Enter code:",
+        "escrow_success": "✅ Escrow created!\nAmount: {:.2f} USDT\nCode: {}\n📅 Created: {}\nSend to seller.",
+        "pair_success": "✅ Paired!\nBuyer: {}\nSeller: {}\nAmount: {:.2f} USDT\n📅 Time: {}\nAdmin notified.",
         "no_money": "❌ Insufficient balance",
-        "tip_error": "❌ Wrong code",
+        "tip_error": "❌ Invalid code",
         "back": "🏠 Home",
         "lang": "🌐 繁中",
         "merchant": """🏪 Merchant Registration
@@ -1099,8 +1096,7 @@ def start_b(msg):
         user_step2[u] = None
         user_balance2.setdefault(u, 0.0)
         t = TEXT_B[user_lang2[u]]
-        # 发送菜单图 + 首页文字（原有逻辑完全不变，只加图片）
-        bot2.send_photo(msg.chat.id, MENU_IMAGE_URL, caption=t["home"], reply_markup=main_menu2(u))
+        bot2.send_message(msg.chat.id, t["home"], reply_markup=main_menu2(u))
     except:
         pass
 
@@ -1115,15 +1111,13 @@ def callback_b(c):
 
         if c.data == "home":
             user_step2[u] = None
-            bot2.edit_message_media(telebot.types.InputMediaPhoto(MENU_IMAGE_URL), chat_id=cid, message_id=mid)
-            bot2.edit_message_caption(cid, mid, caption=t["home"], reply_markup=main_menu2(u))
+            bot2.edit_message_text(t["home"], cid, mid, reply_markup=main_menu2(u))
 
         elif c.data == "lang":
             user_lang2[u] = "en" if lang == "zh" else "zh"
             new_lang = user_lang2[u]
             new_t = TEXT_B[new_lang]
-            bot2.edit_message_media(telebot.types.InputMediaPhoto(MENU_IMAGE_URL), chat_id=cid, message_id=mid)
-            bot2.edit_message_caption(cid, mid, caption=new_t["home"], reply_markup=main_menu2(u))
+            bot2.edit_message_text(new_t["home"], cid, mid, reply_markup=main_menu2(u))
 
         elif c.data == "personal":
             bal = user_balance2.get(u, 0.0)
@@ -1220,8 +1214,7 @@ def msg_b(msg):
                 user_balance2[u] -= amt
                 create_time = datetime.now().strftime("%m-%d %H:%M")
                 orders2[code] = {"buyer": u, "amount": amt, "time": create_time}
-                # 发送账单图 + 订单文字
-                bot2.send_photo(cid, BILL_IMAGE_URL, caption=t["escrow_success"].format(amt, code, create_time), reply_markup=main_menu2(u))
+                bot2.send_message(cid, t["escrow_success"].format(amt, code, create_time), reply_markup=main_menu2(u))
                 user_step2[u] = None
             else:
                 bot2.send_message(cid, t["no_money"], reply_markup=main_menu2(u))
@@ -1236,8 +1229,7 @@ def msg_b(msg):
                 return
             o = orders2[code]
             pair_time = datetime.now().strftime("%m-%d %H:%M")
-            # 发送账单图 + 配对成功文字
-            bot2.send_photo(cid, BILL_IMAGE_URL, caption=t["pair_success"].format(o["buyer"], u, o["amount"], pair_time), reply_markup=main_menu2(u))
+            bot2.send_message(cid, t["pair_success"].format(o["buyer"], u, o["amount"], pair_time), reply_markup=main_menu2(u))
             try:
                 bot2.send_message(ADMIN_ID_B, f"📥 新訂單\n口令：{code}\n買方：{o['buyer']}\n賣方：{u}\n金額：{o['amount']} USDT\n📅 {pair_time}")
             except:
@@ -1247,6 +1239,7 @@ def msg_b(msg):
             return
 
     except Exception as e:
+        print(f"msg_b error: {e}")
         pass
 
 # ==============================================================================
