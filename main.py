@@ -1261,4 +1261,61 @@ if __name__ == "__main__":
     threading.Thread(target=run_bot2, daemon=True).start()
     while True:
         time.sleep(1)
-         time.sleep(1) 
+        # 用户个人中心显示累计利润（手机专用无缩进版）
+def get_user_total_my_profit(uid):
+    my_pro = 0.0
+    for oid, o in orders1.items():
+        if o["user"] == uid and o["status"] == 2:
+            my_pro += o.get("profit", 0.0)
+    return round(my_pro, 2)
+
+TEXT_A["zh"]["profile"] += """
+💵 累計已賺利潤：{} USD"""
+TEXT_A["en"]["profile"] += """
+💵 Total Profit: {} USD"""
+
+old_callback_a = callback_a
+
+def new_callback_a(c):
+    try:
+        u = c.from_user.id
+        lang = user_lang1.get(u, "zh")
+        if c.data == "profile":
+            pending_lines = []
+            completed_lines = []
+            for oid, o in orders1.items():
+                if o["user"] == u:
+                    typ = o.get("type_name", "-")
+                    typ = type_map[lang].get(typ, typ)
+                    s_map = {0: TEXT_A[lang]["status_wait"],1: TEXT_A[lang]["status_doing"],2: TEXT_A[lang]["status_done"],3: TEXT_A[lang]["status_canceled"]}
+                    s = s_map.get(o["status"], TEXT_A[lang]["status_wait"])
+                    time_str = o.get("create_time", now_beijing())
+                    profit_val = o.get('profit', 0)
+                    sid = str(oid)[-3:]
+                    if lang == "zh":
+                        if o["status"] == 1: sta_show = "未"
+                        elif o["status"] == 2: sta_show = "完"
+                        elif o["status"] == 3: sta_show = "取"
+                        else: sta_show = "待"
+                    else:
+                        if o["status"] == 1: sta_show = "P"
+                        elif o["status"] == 2: sta_show = "F"
+                        elif o["status"] == 3: sta_show = "C"
+                        else: sta_show = "W"
+                    line = f"#{sid} {typ} {o['amount']} USD {sta_show} +{profit_val} {time_str}"
+                    if o["status"] == 1: pending_lines.append(line)
+                    else: completed_lines.append(line)
+            v = user_verify1.get(u, 0)
+            status_map = {"zh": {0: "未申請",1: "審核中",2: "已通過"},"en": {0: "Not Applied",1: "Pending",2: "Verified"}}
+            status = status_map[lang][v]
+            p_text = "\n".join(pending_lines) if pending_lines else ("無" if lang == "zh" else "None")
+            c_text = "\n".join(completed_lines) if completed_lines else ("無" if lang == "zh" else "None")
+            my_profit = get_user_total_my_profit(u)
+            final_text = TEXT_A[lang]["profile"].format(u, user_balance1.get(u, 0.0), status, p_text, c_text, my_profit)
+            bot1.edit_message_text(final_text, c.message.chat.id, c.message.message_id, reply_markup=back_menu1(u))
+            bot1.answer_callback_query(c.id)
+            return
+    except: pass
+    old_callback_a(c)
+
+callback_a = new_callback_a
