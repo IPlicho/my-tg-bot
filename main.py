@@ -1261,3 +1261,4 @@ if __name__ == "__main__":
     threading.Thread(target=run_bot2, daemon=True).start()
     while True:
         time.sleep(1)
+         time.sleep(1) 
