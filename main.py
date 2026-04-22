@@ -1260,7 +1260,8 @@ if __name__ == "__main__":
     threading.Thread(target=run_bot1, daemon=True).start()
     threading.Thread(target=run_bot2, daemon=True).start()
     while True:
-        # 用户个人中心显示累计利润（最终无错版）
+        time.sleep(1)
+        # 用户个人中心显示累计利润（极简零缩进版）
 def get_user_total_my_profit(uid):
     my_pro = 0.0
     for oid, o in orders1.items():
@@ -1281,47 +1282,26 @@ def new_callback_a(c):
                 if o["user"] == u:
                     typ = o.get("type_name", "-")
                     typ = type_map[lang].get(typ, typ)
-                    s_map = {
-                        0: TEXT_A[lang]["status_wait"],
-                        1: TEXT_A[lang]["status_doing"],
-                        2: TEXT_A[lang]["status_done"],
-                        3: TEXT_A[lang]["status_canceled"]
-                    }
+                    s_map = {0: TEXT_A[lang]["status_wait"],1: TEXT_A[lang]["status_doing"],2: TEXT_A[lang]["status_done"],3: TEXT_A[lang]["status_canceled"]}
                     s = s_map.get(o["status"], TEXT_A[lang]["status_wait"])
                     time_str = o.get("create_time", now_beijing())
                     profit_val = o.get('profit', 0)
                     sid = str(oid)[-3:]
-                    
                     if lang == "zh":
-                        if o["status"] == 1:
-                            sta_show = "未"
-                        elif o["status"] == 2:
-                            sta_show = "完"
-                        elif o["status"] == 3:
-                            sta_show = "取"
-                        else:
-                            sta_show = "待"
+                        if o["status"] == 1: sta_show = "未"
+                        elif o["status"] == 2: sta_show = "完"
+                        elif o["status"] == 3: sta_show = "取"
+                        else: sta_show = "待"
                     else:
-                        if o["status"] == 1:
-                            sta_show = "P"
-                        elif o["status"] == 2:
-                            sta_show = "F"
-                        elif o["status"] == 3:
-                            sta_show = "C"
-                        else:
-                            sta_show = "W"
-                    
+                        if o["status"] == 1: sta_show = "P"
+                        elif o["status"] == 2: sta_show = "F"
+                        elif o["status"] == 3: sta_show = "C"
+                        else: sta_show = "W"
                     line = f"#{sid} {typ} {o['amount']} USD {sta_show} +{profit_val} {time_str}"
-                    if o["status"] == 1:
-                        pending_lines.append(line)
-                    else:
-                        completed_lines.append(line)
-            
+                    if o["status"] == 1: pending_lines.append(line)
+                    else: completed_lines.append(line)
             v = user_verify1.get(u, 0)
-            status_map = {
-                "zh": {0: "未申請", 1: "審核中", 2: "已通過"},
-                "en": {0: "Not Applied", 1: "Pending", 2: "Verified"}
-            }
+            status_map = {"zh": {0: "未申請",1: "審核中",2: "已通過"},"en": {0: "Not Applied",1: "Pending",2: "Verified"}}
             status = status_map[lang][v]
             p_text = "\n".join(pending_lines) if pending_lines else ("無" if lang == "zh" else "None")
             c_text = "\n".join(completed_lines) if completed_lines else ("無" if lang == "zh" else "None")
@@ -1354,12 +1334,7 @@ def new_callback_a(c):
 
 💵 Total Profit: {my_profit} USD"""
             
-            bot1.edit_message_text(
-                text=final_text,
-                chat_id=c.message.chat.id,
-                message_id=c.message.message_id,
-                reply_markup=back_menu1(u)
-            )
+            bot1.edit_message_text(final_text, c.message.chat.id, c.message.message_id, reply_markup=back_menu1(u))
             bot1.answer_callback_query(c.id)
             return
     except Exception as e:
